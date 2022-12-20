@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from speechbrain.dataio.dataloader import LoopedLoader
 import os.path as osp
 import torch
+import argparse
 
 # Trains xvector model
 class XvectorBrain(sb.Brain):
@@ -56,8 +57,10 @@ class XvectorBrain(sb.Brain):
 
     def on_stage_end(self, stage, stage_loss, epoch=None):
         """Gets called at the end of a stage."""
+        stage_stats = {"loss": stage_loss}
         if stage == sb.Stage.TRAIN:
             self.train_loss = stage_loss
+            self.train_stats = stage_stats
         if stage == sb.Stage.VALID:
             print("Epoch %d complete" % epoch)
             print("Train loss: %.2f" % self.train_loss)
@@ -67,6 +70,7 @@ class XvectorBrain(sb.Brain):
                 stage, "error: %.2f" % self.error_metrics.summarize("average")
             )
             print(stage, "acc: %.2f" % self.acc_metric.summarize("average"))
+            
     
     def fit(
         self,
@@ -157,11 +161,28 @@ class XvectorBrain(sb.Brain):
         # Iterate epochs
         for epoch in epoch_counter:
             self._fit_train(train_set=train_set, epoch=epoch, enable=enable)
+            stage_stats = {"all_acc": 0, "clean_acc": 0, "noisy_acc": 0}
             print("----- Evaluate in clean valid set -----")
             self._fit_valid(valid_set=valid_clean_set, epoch=epoch, enable=enable)
+            stage_stats["clean_acc"] = self.acc_metric.summarize("average")
             print("----- Evaluate in noisy valid set -----")
             self._fit_valid(valid_set=valid_noisy_set, epoch=epoch, enable=enable)
+            stage_stats["noisy_acc"] = self.acc_metric.summarize("average")
+            stage_stats["all_acc"] = (stage_stats["clean_acc"] + stage_stats["noisy_acc"]) / 2.0
 
+            self.checkpointer.save_and_keep_only(
+                    meta={"train_loss": self.train_loss,
+                          "all_acc": stage_stats["all_acc"],
+                          "clean_acc": stage_stats["clean_acc"],
+                          "noisy_acc": stage_stats["noisy_acc"]},
+                    num_to_keep=1,
+                    max_keys=["all_acc"]
+                )
+            self.hparams.train_logger.log_stats(
+                stats_meta={"epoch": epoch},
+                train_stats=self.train_stats,
+                valid_stats=stage_stats,
+            )
             # Debug mode only runs a few epochs
             if (
                 self.debug
@@ -185,6 +206,14 @@ def data_prep(data_folder, hparams):
     )
     valid_noisy_data = sb.dataio.dataset.DynamicItemDataset.from_csv(
         csv_path=osp.join(data_folder, "train_dev_noisy.csv"),
+        replacements={"data_root": data_folder},
+    )
+    test_clean_data = sb.dataio.dataset.DynamicItemDataset.from_csv(
+        csv_path=osp.join(data_folder, "test.csv"),
+        replacements={"data_root": data_folder},
+    )
+    test_noisy_data = sb.dataio.dataset.DynamicItemDataset.from_csv(
+        csv_path=osp.join(data_folder, "test-noisy.csv"),
         replacements={"data_root": data_folder},
     )
     datasets = [train_data, valid_clean_data, valid_noisy_data]
@@ -222,9 +251,14 @@ def data_prep(data_folder, hparams):
 
 
 def main(device="cpu"):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--data_folder', default="/home/hjyeee/Projects/AAI-project/LibriSpeech-SI", type=str,
+    help="data folder")
+    args = parser.parse_args()
+
     experiment_dir = pathlib.Path(__file__).resolve().parent
     hparams_file = experiment_dir / "hyperparams.yaml"
-    data_folder = "/home/hjyeee/Projects/AAI-project/LibriSpeech-SI/annotation"
+    data_folder = osp.join(args.data_folder, "annotation")
     # data_folder = (experiment_dir / data_folder).resolve()
 
     overrides = {
@@ -244,17 +278,22 @@ def main(device="cpu"):
         hparams["opt_class"],
         hparams,
         run_opts={"device": device},
+        checkpointer=hparams["checkpointer"]
     )
 
     # Training/validation loop
     xvect_brain.fit(
-        range(hparams["N_epochs"]),
+        hparams["epoch_counter"],
         train_data,
         valid_clean_data,
         valid_noisy_data,
         train_loader_kwargs=hparams["dataloader_options"],
         valid_loader_kwargs=hparams["dataloader_options"],
     )
+
+    # get the test set prediction
+
+
     # Evaluation is run separately (now just evaluating on valid data)
     # xvect_brain.evaluate(valid_clean_data + valid_noisy_data)
 

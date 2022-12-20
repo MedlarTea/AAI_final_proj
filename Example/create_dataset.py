@@ -12,6 +12,7 @@ from speechbrain.dataio.dataio import (
     merge_csvs,
 )
 from add_noise_lib import add_noise
+import argparse
 
 logger = logging.getLogger(__name__)
 OPT_FILE = "opt_librispeech_prepare.pkl"
@@ -260,11 +261,16 @@ def prepare_noise(data_folder, save_folder):
 
 
 if __name__ == '__main__':
-    data_folder = "/home/hjyeee/Projects/AAI-project/LibriSpeech-SI"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--data_folder', default="/home/hjyeee/Projects/AAI-project/LibriSpeech-SI", type=str,
+    help="data folder")
+    args = parser.parse_args()
+
+    data_folder = args.data_folder
     tr_splits = ['train']
     dev_splits = []
     te_splits = ['test', 'test-noisy']
-    save_folder = "/home/hjyeee/Projects/AAI-project/LibriSpeech-SI/annotation"  # for saving csv files
+    save_folder = os.path.join(data_folder, "annotation") # for saving csv files
 
     # create clean trainset and testsets
     print("---------- Creating Trainset and Testsets -----------")
