@@ -1,1 +1,18 @@
-# AAI_final_proj
+# Speaker Identification
+
+## File directory
+```
+AAI_project
+|
+---speaker_identification (This directory)
+---LibriSpeech-SI
+---
+
+```
+
+
+## Prerequisite
+### Datatset
+Download from bb, 
+
+
