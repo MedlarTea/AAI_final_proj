@@ -47,6 +47,8 @@ python create_dataset.py --data_folder {dataset path}
 # change "hyperparams.yaml" to finetune the model
 python example_xvector_experiment.py --data_folder {dataset path}
 
+# Infer the test data and write it to "annotation/test_predictions.txt"
+python test.py --data_folder {dataset path}
 ```
 
 

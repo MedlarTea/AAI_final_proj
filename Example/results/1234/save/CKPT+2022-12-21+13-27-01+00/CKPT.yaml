@@ -1,0 +1,7 @@
+# yamllint disable
+all_acc: 0.9560422599315643
+clean_acc: 0.9759480953216553
+end-of-epoch: true
+noisy_acc: 0.9361364245414734
+train_loss: 0.006555419538896226
+unixtime: 1671600421.8112943
