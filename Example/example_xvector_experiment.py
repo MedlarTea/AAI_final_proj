@@ -11,6 +11,7 @@ from speechbrain.dataio.dataloader import LoopedLoader
 import os.path as osp
 import torch
 import argparse
+from speechbrain.utils.distributed import run_on_main
 
 # Trains xvector model
 class XvectorBrain(sb.Brain):
@@ -191,6 +192,83 @@ class XvectorBrain(sb.Brain):
             ):
                 break
 
+    def evaluate(
+        self,
+        test_set,
+        max_key=None,
+        min_key=None,
+        progressbar=None,
+        test_loader_kwargs={},
+    ):
+        """Iterate test_set and evaluate brain performance. By default, loads
+        the best-performing checkpoint (as recorded using the checkpointer).
+
+        Arguments
+        ---------
+        test_set : Dataset, DataLoader
+            If a DataLoader is given, it is iterated directly. Otherwise passed
+            to ``self.make_dataloader()``.
+        max_key : str
+            Key to use for finding best checkpoint, passed to
+            ``on_evaluate_start()``.
+        min_key : str
+            Key to use for finding best checkpoint, passed to
+            ``on_evaluate_start()``.
+        progressbar : bool
+            Whether to display the progress in a progressbar.
+        test_loader_kwargs : dict
+            Kwargs passed to ``make_dataloader()`` if ``test_set`` is not a
+            DataLoader. NOTE: ``loader_kwargs["ckpt_prefix"]`` gets
+            automatically overwritten to ``None`` (so that the test DataLoader
+            is not added to the checkpointer).
+
+        Returns
+        -------
+        average test loss
+        """
+        if progressbar is None:
+            progressbar = not self.noprogressbar
+
+        if not (
+            isinstance(test_set, DataLoader)
+            or isinstance(test_set, LoopedLoader)
+        ):
+            test_loader_kwargs["ckpt_prefix"] = None
+            test_set = self.make_dataloader(
+                test_set, sb.Stage.TEST, **test_loader_kwargs
+            )
+        self.on_evaluate_start(max_key=max_key, min_key=min_key)
+        self.on_stage_start(sb.Stage.TEST, epoch=None)
+        self.modules.eval()
+        avg_test_loss = 0.0
+        with torch.no_grad():
+            for batch in tqdm(
+                test_set,
+                dynamic_ncols=True,
+                disable=not progressbar,
+                colour=self.tqdm_barcolor["test"],
+            ):
+                self.step += 1
+                predictions, lens = self.compute_forward(batch, stage=sb.Stage.TEST)  # one-hot
+                
+        #         loss = self.evaluate_batch(batch, stage=sb.Stage.TEST)
+        #         avg_test_loss = self.update_average(loss, avg_test_loss)
+
+        #         # Profile only if desired (steps allow the profiler to know when all is warmed up)
+        #         if self.profiler is not None:
+        #             if self.profiler.record_steps:
+        #                 self.profiler.step()
+
+        #         # Debug mode only runs a few batches
+        #         if self.debug and self.step == self.debug_batches:
+        #             break
+
+        #     # Only run evaluation "on_stage_end" on main process
+        #     run_on_main(
+        #         self.on_stage_end, args=[sb.Stage.TEST, avg_test_loss, None]
+        #     )
+        # self.step = 0
+        # return avg_test_loss
 
 def data_prep(data_folder, hparams):
     "Creates the datasets and their data processing pipelines."
@@ -216,7 +294,7 @@ def data_prep(data_folder, hparams):
         csv_path=osp.join(data_folder, "test-noisy.csv"),
         replacements={"data_root": data_folder},
     )
-    datasets = [train_data, valid_clean_data, valid_noisy_data]
+    datasets = [train_data, valid_clean_data, valid_noisy_data, test_clean_data, test_noisy_data]
     label_encoder = sb.dataio.encoder.CategoricalEncoder()
 
     # 2. Define audio pipeline:
@@ -247,7 +325,7 @@ def data_prep(data_folder, hparams):
     # 4. Set output:
     sb.dataio.dataset.set_output_keys(datasets, ["id", "sig", "spk_id_encoded"])
 
-    return train_data, valid_clean_data, valid_noisy_data
+    return train_data, valid_clean_data, valid_noisy_data, test_clean_data, test_noisy_data
 
 
 def main(device="cpu"):
@@ -270,7 +348,7 @@ def main(device="cpu"):
         hparams = load_hyperpyyaml(fin, overrides)
 
     # Dataset creation
-    train_data, valid_clean_data, valid_noisy_data = data_prep(data_folder, hparams)
+    train_data, valid_clean_data, valid_noisy_data, test_clean_data, test_noisy_data = data_prep(data_folder, hparams)
 
     # Trainer initialization
     xvect_brain = XvectorBrain(

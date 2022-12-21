@@ -4,7 +4,7 @@
 ```
 AAI_project
 |
----speaker_identification (This directory, rename it to this)
+---speaker_identification (This directory)
 ---LibriSpeech-SI
 ---speechbrain
 
@@ -44,6 +44,7 @@ cd Example
 python create_dataset.py --data_folder {dataset path}
 
 # Run training and testing
+# change "hyperparams.yaml" to finetune the model
 python example_xvector_experiment.py --data_folder {dataset path}
 
 ```
