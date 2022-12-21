@@ -21,7 +21,7 @@ conda create-n si python=3.8
 
 ### Our codes
 ```bash
-git clone https://github.com/MedlarTea/AAI_final_proj
+git clone https://github.com/MedlarTea/speaker_identification.git
 ```
 
 ### Datatset
