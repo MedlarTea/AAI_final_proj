@@ -8,10 +8,10 @@ train_log: !ref <output_folder>/train_log.txt
 __set_seed: !apply:torch.manual_seed [!ref <seed>]
 
 # Training params
-N_epochs: 50
+N_epochs: 40
 lr: 0.001
 dataloader_options:
-    batch_size: 64
+    batch_size: 32
 
 epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
    limit: !ref <N_epochs>

@@ -17,21 +17,22 @@ from xvector_brain import XvectorBrain
 ### (lzj: add for experiments)
 import time
 import nni
+import random
 
 
 ### (lzj: for auto tuning)
 g_params = {
     'lr': 0.001,
-    'batch_size': 32,
-    # 'xvector_tdnn_ch0': 512,
-    # 'xvector_tdnn_ch1': 512,
-    # 'xvector_tdnn_ch2': 512,
-    # 'xvector_tdnn_ch3': 512,
+    # 'batch_size': 32,
+    'xvector_tdnn_ch0': 512,
+    'xvector_tdnn_ch1': 1024,
+    'xvector_tdnn_ch2': 512,
+    'xvector_tdnn_ch3': 512,
     # 'xvector_tdnn_ch4': 1500,     
 }
-optimized_params = nni.get_next_parameter()
-g_params.update(optimized_params)
-# print(g_params)
+# optimized_params = nni.get_next_parameter()
+# g_params.update(optimized_params)
+
 
 
 
@@ -41,7 +42,8 @@ def adjust_param(hparams, param_struct):
 
     ### file paths
     experiment_time = time.strftime("Date_%Y_%m_%d_Time_%H_%M_%S", time.gmtime())
-    output_str = experiment_time
+    rand_num = random.random()
+    output_str = experiment_time + "_" + str(rand_num)
     experiment_dir = pathlib.Path(__file__).resolve().parent
     output_folder = experiment_dir / "results" / output_str
     wer_file = output_folder / "wer.txt"
@@ -51,7 +53,6 @@ def adjust_param(hparams, param_struct):
     output_folder.mkdir()
     save_folder.mkdir()
     
-
     hparams["output_folder"] = output_folder
     hparams["wer_file"] = wer_file
     ## save_folder & checkpointer.checkpoints_dir
@@ -69,18 +70,35 @@ def adjust_param(hparams, param_struct):
     # print(f'hparams["N_epochs"]: {hparams["N_epochs"]}')
     # print(f'hparams["epoch_counter"].limit: {hparams["epoch_counter"].limit}')     
      
-    # lr & opt_class.lr
+    ## lr & opt_class.lr
     hparams["lr"] = param_struct["lr"]
     hparams["opt_class"].lr = param_struct["lr"]
     print(f'hparams["lr"]: {hparams["lr"]}')
     print(f'hparams["opt_class"].lr: {hparams["opt_class"].lr}')
+    
     # dataloader_options.batch_size 
-    # hparams["dataloader_options"].batch_size = param_struct["batch_size"]
-    hparams["dataloader_options"]["batch_size"] = param_struct["batch_size"]   
-    print(f'hparams["dataloader_options"]["batch_size"]: {hparams["dataloader_options"]["batch_size"]}')   
-    # xvector_model.tdnn_channels 
+    # hparams["dataloader_options"]["batch_size"] = param_struct["batch_size"]   
+    # print(f'hparams["dataloader_options"]["batch_size"]: {hparams["dataloader_options"]["batch_size"]}')  
+    
+    ## model
+    ## (lzj: !!! since the inconvienient structure of speech brain api, the saved model is the wrong one in the yaml file.)  
+    ch0, ch1, ch2, ch3 = \
+        param_struct["xvector_tdnn_ch0"],  param_struct["xvector_tdnn_ch1"], param_struct["xvector_tdnn_ch2"], param_struct["xvector_tdnn_ch3"], 
+    # print(f'ch0,ch1,ch2,ch3: {ch0},{ch1},{ch2},{ch3}')
+    
+    hparams["model"][1] = sb.lobes.models.Xvector.Xvector(
+        in_channels = 24,
+        activation = torch.nn.LeakyReLU,
+        tdnn_blocks = 5,
+        tdnn_channels = [ch0, ch1, ch2, ch3, 1500],
+        tdnn_kernel_sizes = [5, 3, 3, 1, 1],
+        tdnn_dilations = [1, 2, 3, 1, 1],
+        lin_neurons = 512,
+    )
+    
 
-
+    
+    
 
 def data_prep(data_folder, hparams):
     "Creates the datasets and their data processing pipelines."
