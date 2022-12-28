@@ -75,7 +75,7 @@ def data_prep(data_folder, hparams):
 
 def main(device="cpu"):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--data_folder', default="/home/hjyeee/Projects/AAI-project/LibriSpeech-SI", type=str, help="data folder")
+    parser.add_argument('-d', '--data_folder', default="/data/zijun/Workspaces/CourseProj_ws/AAI/LibriSpeech-SI", type=str, help="data folder")
     # parser.add_argument('-c', '--ckpt', default="/home/hjyeee/Projects/AAI-project/speaker_identification/Example/results/1234/save/CKPT+2022-12-20+23-07-33+00/model.ckpt", type=str, help="data folder")
 
     args = parser.parse_args()
