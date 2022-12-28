@@ -18,14 +18,67 @@ from xvector_brain import XvectorBrain
 import time
 import nni
 
+
 ### (lzj: for auto tuning)
 g_params = {
     'lr': 0.001,
-    'batch_size': 64,
-    ''
+    'batch_size': 32,
+    # 'xvector_tdnn_ch0': 512,
+    # 'xvector_tdnn_ch1': 512,
+    # 'xvector_tdnn_ch2': 512,
+    # 'xvector_tdnn_ch3': 512,
+    # 'xvector_tdnn_ch4': 1500,     
 }
+optimized_params = nni.get_next_parameter()
+g_params.update(optimized_params)
+# print(g_params)
 
 
+
+
+## (lzj: test) Try to modified param here
+def adjust_param(hparams, param_struct):
+
+    ### file paths
+    experiment_time = time.strftime("Date_%Y_%m_%d_Time_%H_%M_%S", time.gmtime())
+    output_str = experiment_time
+    experiment_dir = pathlib.Path(__file__).resolve().parent
+    output_folder = experiment_dir / "results" / output_str
+    wer_file = output_folder / "wer.txt"
+    save_folder = output_folder / "save"
+    train_log = output_folder / "train_log.txt"
+
+    output_folder.mkdir()
+    save_folder.mkdir()
+    
+
+    hparams["output_folder"] = output_folder
+    hparams["wer_file"] = wer_file
+    ## save_folder & checkpointer.checkpoints_dir
+    hparams["save_folder"] = save_folder
+    hparams["checkpointer"].checkpoints_dir = save_folder
+    ## train_log & train_logger.save_file
+    hparams["train_log"] = train_log
+    hparams["train_logger"].save_file = train_log
+    print(f'output_folder: {output_folder}')
+
+    ### modify params
+    # N_epochs & epoch_counter.limit
+    # hparams["N_epochs"] = 200 
+    # hparams["epoch_counter"].limit = 200 
+    # print(f'hparams["N_epochs"]: {hparams["N_epochs"]}')
+    # print(f'hparams["epoch_counter"].limit: {hparams["epoch_counter"].limit}')     
+     
+    # lr & opt_class.lr
+    hparams["lr"] = param_struct["lr"]
+    hparams["opt_class"].lr = param_struct["lr"]
+    print(f'hparams["lr"]: {hparams["lr"]}')
+    print(f'hparams["opt_class"].lr: {hparams["opt_class"].lr}')
+    # dataloader_options.batch_size 
+    # hparams["dataloader_options"].batch_size = param_struct["batch_size"]
+    hparams["dataloader_options"]["batch_size"] = param_struct["batch_size"]   
+    print(f'hparams["dataloader_options"]["batch_size"]: {hparams["dataloader_options"]["batch_size"]}')   
+    # xvector_model.tdnn_channels 
 
 
 
@@ -87,31 +140,6 @@ def data_prep(data_folder, hparams):
     return train_data, valid_clean_data, valid_noisy_data, test_clean_data, test_noisy_data
 
 
-
-## (lzj: test) Try to modified param here
-def adjust_param(hparams, param_struct):
-
-    output_folder = 
-
-    # N_epochs & epoch_counter.limit
-    # print(f'hparams["N_epochs"]: {hparams["N_epochs"]}')
-    # print(f'hparams["epoch_counter"].limit: {hparams["epoch_counter"].limit}')  
-    # print(f'try to modified N_epochs')
-    hparams["N_epochs"] = 200 
-    hparams["epoch_counter"].limit = 200 
-    print(f'hparams["N_epochs"]: {hparams["N_epochs"]}')
-    print(f'hparams["epoch_counter"].limit: {hparams["epoch_counter"].limit}')     
-     
-    # lr & opt_class.lr
-    hparams["lr"] = 0.1
-    hparams["opt_class"].lr = 0.1
-    print(f'hparams["lr"]: {hparams["lr"]}')
-    print(f'hparams["opt_class"].lr: {hparams["opt_class"].lr}')
-    
-    # dataloader_options.batch_size    
-
-
-
 def main(device="cpu"):
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--data_folder', default="/data/zijun/Workspaces/CourseProj_ws/AAI/LibriSpeech-SI", type=str,
@@ -133,12 +161,9 @@ def main(device="cpu"):
 
 
     ### (lzj: for auto tuning)
+    adjust_param(hparams, g_params)
 
-    adjust_param(hparams, param_struct)
-
-
-    
-    
+ 
     # Dataset creation
     train_data, valid_clean_data, valid_noisy_data, test_clean_data, test_noisy_data = data_prep(data_folder, hparams)
 
@@ -168,10 +193,12 @@ def main(device="cpu"):
     ### (lzj: add avg_eval_loss)
     avg_eval_loss = xvect_brain.evaluate(valid_clean_data, max_key="all_acc", test_loader_kwargs=hparams["dataloader_options"])
     avg_eval_acc = xvect_brain.acc_metric.summarize("average")
-    
+
+   
     print(f'Average eval loss: {avg_eval_loss}')    
     print(f'Average eval acc: {avg_eval_acc}')
-
+    nni.report_final_result(avg_eval_acc) 
+    
     # Check if model overfits for integration test
     # (lzj: comment this due to a bug)
     # assert xvect_brain.train_loss < 0.2
