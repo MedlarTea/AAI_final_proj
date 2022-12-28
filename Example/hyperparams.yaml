@@ -1,5 +1,5 @@
 # Basic parameters
-seed: 1234
+seed: 1000
 data_folder: !PLACEHOLDER
 output_folder: !ref results/<seed>
 wer_file: !ref <output_folder>/wer.txt

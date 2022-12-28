@@ -14,6 +14,21 @@ import argparse
 from speechbrain.utils.distributed import run_on_main
 from xvector_brain import XvectorBrain
 
+### (lzj: add for experiments)
+import time
+import nni
+
+### (lzj: for auto tuning)
+g_params = {
+    'lr': 0.001,
+    'batch_size': 64,
+    ''
+}
+
+
+
+
+
 def data_prep(data_folder, hparams):
     "Creates the datasets and their data processing pipelines."
 
@@ -72,6 +87,31 @@ def data_prep(data_folder, hparams):
     return train_data, valid_clean_data, valid_noisy_data, test_clean_data, test_noisy_data
 
 
+
+## (lzj: test) Try to modified param here
+def adjust_param(hparams, param_struct):
+
+    output_folder = 
+
+    # N_epochs & epoch_counter.limit
+    # print(f'hparams["N_epochs"]: {hparams["N_epochs"]}')
+    # print(f'hparams["epoch_counter"].limit: {hparams["epoch_counter"].limit}')  
+    # print(f'try to modified N_epochs')
+    hparams["N_epochs"] = 200 
+    hparams["epoch_counter"].limit = 200 
+    print(f'hparams["N_epochs"]: {hparams["N_epochs"]}')
+    print(f'hparams["epoch_counter"].limit: {hparams["epoch_counter"].limit}')     
+     
+    # lr & opt_class.lr
+    hparams["lr"] = 0.1
+    hparams["opt_class"].lr = 0.1
+    print(f'hparams["lr"]: {hparams["lr"]}')
+    print(f'hparams["opt_class"].lr: {hparams["opt_class"].lr}')
+    
+    # dataloader_options.batch_size    
+
+
+
 def main(device="cpu"):
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--data_folder', default="/data/zijun/Workspaces/CourseProj_ws/AAI/LibriSpeech-SI", type=str,
@@ -91,6 +131,14 @@ def main(device="cpu"):
     with open(hparams_file) as fin:
         hparams = load_hyperpyyaml(fin, overrides)
 
+
+    ### (lzj: for auto tuning)
+
+    adjust_param(hparams, param_struct)
+
+
+    
+    
     # Dataset creation
     train_data, valid_clean_data, valid_noisy_data, test_clean_data, test_noisy_data = data_prep(data_folder, hparams)
 
@@ -130,7 +178,7 @@ def main(device="cpu"):
 
 
 if __name__ == "__main__":
-    main(device="cuda")
+    main(device="cuda:1")
 
 
 def test_error(device):

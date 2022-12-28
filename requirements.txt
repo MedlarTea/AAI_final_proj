@@ -12,3 +12,4 @@ torch>=1.9.0
 torchaudio>=0.9.0
 tqdm>=4.42.0
 ctc_segmentation
+nni
