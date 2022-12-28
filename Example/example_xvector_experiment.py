@@ -117,7 +117,12 @@ def main(device="cpu"):
 
 
     # Evaluation is run separately (now just evaluating on valid data)
-    xvect_brain.evaluate(valid_clean_data, max_key="all_acc", test_loader_kwargs=hparams["dataloader_options"])
+    ### (lzj: add avg_eval_loss)
+    avg_eval_loss = xvect_brain.evaluate(valid_clean_data, max_key="all_acc", test_loader_kwargs=hparams["dataloader_options"])
+    avg_eval_acc = xvect_brain.acc_metric.summarize("average")
+    
+    print(f'Average eval loss: {avg_eval_loss}')    
+    print(f'Average eval acc: {avg_eval_acc}')
 
     # Check if model overfits for integration test
     # (lzj: comment this due to a bug)

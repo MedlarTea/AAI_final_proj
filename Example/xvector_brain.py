@@ -188,10 +188,7 @@ class XvectorBrain(sb.Brain):
             ):
                 break
     def infer(self, test_set, max_key=None, min_key=None, progressbar=None, test_loader_kwargs={}):
-        
-        ### (lzj: test)
-        print(f'In XvectorBrain.infer()')
-        
+               
         if progressbar is None:
             progressbar = not self.noprogressbar
 
