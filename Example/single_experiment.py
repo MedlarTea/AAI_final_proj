@@ -30,8 +30,8 @@ g_params = {
     'xvector_tdnn_ch3': 512,
     # 'xvector_tdnn_ch4': 1500,     
 }
-# optimized_params = nni.get_next_parameter()
-# g_params.update(optimized_params)
+optimized_params = nni.get_next_parameter()
+g_params.update(optimized_params)
 
 
 
@@ -61,26 +61,21 @@ def adjust_param(hparams, param_struct):
     ## train_log & train_logger.save_file
     hparams["train_log"] = train_log
     hparams["train_logger"].save_file = train_log
-    print(f'output_folder: {output_folder}')
-
-    ### modify params
-    # N_epochs & epoch_counter.limit
-    # hparams["N_epochs"] = 200 
-    # hparams["epoch_counter"].limit = 200 
-    # print(f'hparams["N_epochs"]: {hparams["N_epochs"]}')
-    # print(f'hparams["epoch_counter"].limit: {hparams["epoch_counter"].limit}')     
+    print(f'output_folder: {output_folder}')   
      
-    ## lr & opt_class.lr
+    ### lr & opt_class.lr
     hparams["lr"] = param_struct["lr"]
     hparams["opt_class"].lr = param_struct["lr"]
     print(f'hparams["lr"]: {hparams["lr"]}')
     print(f'hparams["opt_class"].lr: {hparams["opt_class"].lr}')
     
-    # dataloader_options.batch_size 
+    
+    ### dataloader_options.batch_size 
     # hparams["dataloader_options"]["batch_size"] = param_struct["batch_size"]   
     # print(f'hparams["dataloader_options"]["batch_size"]: {hparams["dataloader_options"]["batch_size"]}')  
     
-    ## model
+    
+    ### model
     ## (lzj: !!! since the inconvienient structure of speech brain api, the saved model is the wrong one in the yaml file.)  
     ch0, ch1, ch2, ch3 = \
         param_struct["xvector_tdnn_ch0"],  param_struct["xvector_tdnn_ch1"], param_struct["xvector_tdnn_ch2"], param_struct["xvector_tdnn_ch3"], 
@@ -95,6 +90,12 @@ def adjust_param(hparams, param_struct):
         tdnn_dilations = [1, 2, 3, 1, 1],
         lin_neurons = 512,
     )
+    ## modules.xvector_model
+    # print(f'hparams["modules"]["xvector_model"]: {hparams["modules"]["xvector_model"]}')
+    hparams["modules"]["xvector_model"] = hparams["model"][1]
+    ## checkpointer.model
+    # print(f'hparams["checkpointer"].recoverables["model"]: {hparams["checkpointer"].recoverables["model"]}')
+    hparams["checkpointer"].recoverables["model"] = hparams["model"]
     
 
     
