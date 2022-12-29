@@ -9,6 +9,9 @@ import argparse
 from speechbrain.utils.distributed import run_on_main
 from tqdm.contrib import tqdm
 
+### (lzj:)
+import nni
+
 # Trains xvector model
 class XvectorBrain(sb.Brain):
     def compute_forward(self, batch, stage):
@@ -175,6 +178,11 @@ class XvectorBrain(sb.Brain):
                     num_to_keep=1,
                     max_keys=["all_acc"]
                 )
+            
+            ### (lzj:)
+            nni.report_intermediate_result(stage_stats["all_acc"])
+            
+            
             self.hparams.train_logger.log_stats(
                 stats_meta={"epoch": epoch},
                 train_stats=self.train_stats,

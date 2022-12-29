@@ -21,7 +21,7 @@ experiment.config.search_space = search_space
 experiment.config.tuner.name = 'TPE'
 experiment.config.tuner.class_args['optimize_mode'] = 'maximize'
 
-experiment.config.max_trial_number = 30
+experiment.config.max_trial_number = 20
 experiment.config.trial_concurrency = 2
 # experiment.config.training_service.use_active_gpu =  True
 
